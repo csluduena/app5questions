@@ -86,17 +86,30 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     width: 90%;
-    max-width: 400px;
+    max-width: 600px;
     margin: 0 auto;
 }
 
-h1 {
+h1, h2, h3 {
     margin: 0 0 1.5rem 0;
     color: #333;
+}
+
+h1 {
     font-size: 1.5rem;
 }
 
-input {
+h2 {
+    font-size: 1.3rem;
+    margin-top: 2rem;
+}
+
+h3 {
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+}
+
+input, select {
     width: 100%;
     padding: 0.75rem;
     margin: 0.5rem 0 1rem;
@@ -116,6 +129,7 @@ button {
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.2s;
+    margin-bottom: 1rem;
 }
 
 button:hover {
@@ -157,6 +171,34 @@ button:disabled {
     color: #dc3545;
 }
 
+.operations {
+    margin-top: 2rem;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+}
+
+.operation {
+    margin-bottom: 1.5rem;
+}
+
+.data-display {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-top: 1rem;
+    text-align: left;
+    overflow-x: auto;
+}
+
+.data-display pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+
+
 /* === c:\Users\SebaHero\Desktop\app5questions\src\App.js === */
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
@@ -169,6 +211,10 @@ function App() {
     const [socket, setSocket] = useState(null);
     const [alertMessage, setAlertMessage] = useState('');
     const [alertType, setAlertType] = useState('');
+    const [lastRecord, setLastRecord] = useState(null);
+    const [editIndex, setEditIndex] = useState(0);
+    const [newAnswer, setNewAnswer] = useState('');
+    const [deleteIndex, setDeleteIndex] = useState(0);
 
     const questions = [
         '¿Cuál es tu deporte favorito?',
@@ -195,11 +241,20 @@ function App() {
         });
 
         newSocket.on('writeSuccess', () => {
-            showAlert('¡Respuesta guardada correctamente!', 'success');
+            showAlert('¡Operación realizada correctamente!', 'success');
         });
 
         newSocket.on('error', ({ message }) => {
-            showAlert(message || 'Error al guardar la respuesta', 'error');
+            showAlert(message || 'Error en la operación', 'error');
+        });
+
+        newSocket.on('readSuccess', (data) => {
+            if (Array.isArray(data) && data.length > 0) {
+                setLastRecord(data[data.length - 1]);
+                showAlert('Último registro obtenido correctamente', 'success');
+            } else {
+                showAlert('No se encontraron registros', 'error');
+            }
         });
 
         setSocket(newSocket);
@@ -211,7 +266,6 @@ function App() {
 
     useEffect(() => {
         if (currentQuestion === questions.length) {
-            // Reiniciar el cuestionario después de 3 segundos
             const timer = setTimeout(() => {
                 setCurrentQuestion(0);
                 setAnswers(Array(5).fill(''));
@@ -234,12 +288,41 @@ function App() {
             }
         });
 
-        // Avanzar a la siguiente pregunta inmediatamente
         if (currentQuestion < questions.length - 1) {
             setCurrentQuestion(currentQuestion + 1);
         } else {
             showAlert('¡Todas las respuestas han sido enviadas!', 'success');
         }
+    };
+
+    const handleGet = () => {
+        socket.emit('readProject', {
+            project: 'proyectoDeportes',
+            folder: '/home/albertobeguier'
+        });
+    };
+
+    const handlePut = () => {
+        if (!lastRecord || !newAnswer) return;
+        const updatedRecord = { ...lastRecord };
+        updatedRecord.data[editIndex].answer = newAnswer;
+        socket.emit('updateProject', {
+            project: 'proyectoDeportes',
+            folder: '/home/albertobeguier',
+            data: updatedRecord
+        });
+        setNewAnswer('');
+    };
+
+    const handleDelete = () => {
+        if (!lastRecord) return;
+        const updatedRecord = { ...lastRecord };
+        updatedRecord.data.splice(deleteIndex, 1);
+        socket.emit('updateProject', {
+            project: 'proyectoDeportes',
+            folder: '/home/albertobeguier',
+            data: updatedRecord
+        });
     };
 
     const showAlert = (message, type) => {
@@ -254,12 +337,13 @@ function App() {
     return (
         <div className="App">
             <div className="card">
+                <div className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
+                    {isConnected ? 'Conectado' : 'Desconectado'}
+                </div>
+                
                 {currentQuestion < questions.length ? (
                     <>
                         <h1>{questions[currentQuestion]}</h1>
-                        <div className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
-                            {isConnected ? 'Conectado' : 'Desconectado'}
-                        </div>
                         <form onSubmit={handleSubmit}>
                             <input
                                 type="text"
@@ -280,6 +364,57 @@ function App() {
                 ) : (
                     <h1>¡Gracias por completar el cuestionario!</h1>
                 )}
+
+                <div className="operations">
+                    <h2>Operaciones adicionales</h2>
+                    
+                    <div className="operation">
+                        <h3>GET - Obtener último registro</h3>
+                        <button onClick={handleGet} disabled={!isConnected}>Obtener datos</button>
+                        {lastRecord && (
+                            <div className="data-display">
+                                <h4>Último registro:</h4>
+                                <pre>{JSON.stringify(lastRecord, null, 2)}</pre>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="operation">
+                        <h3>PUT - Actualizar respuesta del último registro</h3>
+                        <select 
+                            value={editIndex} 
+                            onChange={(e) => setEditIndex(Number(e.target.value))}
+                            disabled={!lastRecord}
+                        >
+                            {lastRecord && lastRecord.data.map((_, index) => (
+                                <option key={index} value={index}>Respuesta {index + 1}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="text"
+                            value={newAnswer}
+                            onChange={(e) => setNewAnswer(e.target.value)}
+                            placeholder="Nueva respuesta"
+                            disabled={!lastRecord}
+                        />
+                        <button onClick={handlePut} disabled={!isConnected || !lastRecord}>Actualizar</button>
+                    </div>
+
+                    <div className="operation">
+                        <h3>DELETE - Eliminar respuesta del último registro</h3>
+                        <select 
+                            value={deleteIndex} 
+                            onChange={(e) => setDeleteIndex(Number(e.target.value))}
+                            disabled={!lastRecord}
+                        >
+                            {lastRecord && lastRecord.data.map((_, index) => (
+                                <option key={index} value={index}>Respuesta {index + 1}</option>
+                            ))}
+                        </select>
+                        <button onClick={handleDelete} disabled={!isConnected || !lastRecord}>Eliminar</button>
+                    </div>
+                </div>
+
                 {alertMessage && (
                     <div className={`alert ${alertType === 'success' ? 'alert-success' : 'alert-error'}`}>
                         {alertMessage}

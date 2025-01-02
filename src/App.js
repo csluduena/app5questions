@@ -138,7 +138,7 @@ function App() {
                 <div className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
                     {isConnected ? 'Conectado' : 'Desconectado'}
                 </div>
-                
+
                 {currentQuestion < questions.length ? (
                     <>
                         <h1>{questions[currentQuestion]}</h1>
@@ -165,7 +165,7 @@ function App() {
 
                 <div className="operations">
                     <h2>Operaciones adicionales</h2>
-                    
+
                     <div className="operation">
                         <h3>GET - Obtener último registro</h3>
                         <button onClick={handleGet} disabled={!isConnected}>Obtener datos</button>
@@ -179,8 +179,8 @@ function App() {
 
                     <div className="operation">
                         <h3>PUT - Actualizar respuesta del último registro</h3>
-                        <select 
-                            value={editIndex} 
+                        <select
+                            value={editIndex}
                             onChange={(e) => setEditIndex(Number(e.target.value))}
                             disabled={!lastRecord}
                         >
@@ -195,13 +195,13 @@ function App() {
                             placeholder="Nueva respuesta"
                             disabled={!lastRecord}
                         />
-                        <button onClick={handlePut} disabled={!isConnected || !lastRecord}>Actualizar</button>
+                        <button onClick={handlePut} disabled={!newAnswer || !lastRecord}>Actualizar</button>
                     </div>
 
                     <div className="operation">
                         <h3>DELETE - Eliminar respuesta del último registro</h3>
-                        <select 
-                            value={deleteIndex} 
+                        <select
+                            value={deleteIndex}
                             onChange={(e) => setDeleteIndex(Number(e.target.value))}
                             disabled={!lastRecord}
                         >
@@ -209,19 +209,18 @@ function App() {
                                 <option key={index} value={index}>Respuesta {index + 1}</option>
                             ))}
                         </select>
-                        <button onClick={handleDelete} disabled={!isConnected || !lastRecord}>Eliminar</button>
+                        <button onClick={handleDelete} disabled={!lastRecord}>Eliminar</button>
                     </div>
-                </div>
 
-                {alertMessage && (
-                    <div className={`alert ${alertType === 'success' ? 'alert-success' : 'alert-error'}`}>
-                        {alertMessage}
-                    </div>
-                )}
+                    {alertMessage && (
+                        <div className={`alert ${alertType === 'success' ? 'alert-success' : 'alert-error'}`}>
+                            {alertMessage}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 }
 
 export default App;
-
