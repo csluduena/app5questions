@@ -13,6 +13,7 @@ function App() {
     const [editIndex, setEditIndex] = useState(0);
     const [newAnswer, setNewAnswer] = useState('');
     const [deleteIndex, setDeleteIndex] = useState(0);
+    const [jsonData, setJsonData] = useState(null); // Estado para los datos obtenidos
 
     const questions = [
         '¿Cuál es tu deporte favorito?',
@@ -49,6 +50,7 @@ function App() {
         newSocket.on('readSuccess', (data) => {
             if (Array.isArray(data) && data.length > 0) {
                 setLastRecord(data[data.length - 1]);
+                setJsonData(data); // Guardar los datos obtenidos
                 showAlert('Último registro obtenido correctamente', 'success');
             } else {
                 showAlert('No se encontraron registros', 'error');
@@ -78,7 +80,7 @@ function App() {
 
         socket.emit('writeProject', {
             project: 'proyectoDeportes',
-            folder: '/home/albertobeguier',
+            folder: '/home/albertobeguier/proyectoDeportes', // Ruta actualizada
             data: {
                 question: questions[currentQuestion],
                 answer: answers[currentQuestion],
@@ -96,7 +98,7 @@ function App() {
     const handleGet = () => {
         socket.emit('readProject', {
             project: 'proyectoDeportes',
-            folder: '/home/albertobeguier'
+            folder: '/home/albertobeguier/proyectoDeportes' // Ruta actualizada
         });
     };
 
@@ -106,7 +108,7 @@ function App() {
         updatedRecord.data[editIndex].answer = newAnswer;
         socket.emit('updateProject', {
             project: 'proyectoDeportes',
-            folder: '/home/albertobeguier',
+            folder: '/home/albertobeguier/proyectoDeportes',
             data: updatedRecord
         });
         setNewAnswer('');
@@ -118,7 +120,7 @@ function App() {
         updatedRecord.data.splice(deleteIndex, 1);
         socket.emit('updateProject', {
             project: 'proyectoDeportes',
-            folder: '/home/albertobeguier',
+            folder: '/home/albertobeguier/proyectoDeportes',
             data: updatedRecord
         });
     };
@@ -169,18 +171,18 @@ function App() {
                     <div className="operation">
                         <h3>GET - Obtener último registro</h3>
                         <button onClick={handleGet} disabled={!isConnected}>Obtener datos</button>
-                        {lastRecord && (
+                        {jsonData && (
                             <div className="data-display">
-                                <h4>Último registro:</h4>
-                                <pre>{JSON.stringify(lastRecord, null, 2)}</pre>
+                                <h4>Datos obtenidos:</h4>
+                                <pre>{JSON.stringify(jsonData, null, 2)}</pre>
                             </div>
                         )}
                     </div>
 
                     <div className="operation">
                         <h3>PUT - Actualizar respuesta del último registro</h3>
-                        <select
-                            value={editIndex}
+                        <select 
+                            value={editIndex} 
                             onChange={(e) => setEditIndex(Number(e.target.value))}
                             disabled={!lastRecord}
                         >
@@ -200,8 +202,8 @@ function App() {
 
                     <div className="operation">
                         <h3>DELETE - Eliminar respuesta del último registro</h3>
-                        <select
-                            value={deleteIndex}
+                        <select 
+                            value={deleteIndex} 
                             onChange={(e) => setDeleteIndex(Number(e.target.value))}
                             disabled={!lastRecord}
                         >
