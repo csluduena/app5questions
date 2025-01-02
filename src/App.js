@@ -81,11 +81,11 @@ function App() {
         socket.emit('writeProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier/proyectoDeportes', // Ruta actualizada
-            data: {
+            data: JSON.stringify({ // Convertir a string
                 question: questions[currentQuestion],
                 answer: answers[currentQuestion],
                 timestamp: new Date().toISOString()
-            }
+            })
         });
 
         if (currentQuestion < questions.length - 1) {
@@ -109,7 +109,7 @@ function App() {
         socket.emit('updateProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier/proyectoDeportes',
-            data: updatedRecord
+            data: JSON.stringify(updatedRecord) // Convertir a string
         });
         setNewAnswer('');
     };
@@ -121,7 +121,7 @@ function App() {
         socket.emit('updateProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier/proyectoDeportes',
-            data: updatedRecord
+            data: JSON.stringify(updatedRecord) // Convertir a string
         });
     };
 
