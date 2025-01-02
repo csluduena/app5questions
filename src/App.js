@@ -14,6 +14,7 @@ function App() {
     const [newAnswer, setNewAnswer] = useState('');
     const [deleteIndex, setDeleteIndex] = useState(0);
     const [jsonData, setJsonData] = useState(null); // Estado para los datos obtenidos
+    const [randomData, setRandomData] = useState(null); // Estado para la respuesta aleatoria
 
     const questions = [
         '¿Cuál es tu deporte favorito?',
@@ -64,15 +65,13 @@ function App() {
         };
     }, []);
 
-    useEffect(() => {
-        if (currentQuestion === questions.length) {
-            const timer = setTimeout(() => {
-                setCurrentQuestion(0);
-                setAnswers(Array(5).fill(''));
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [currentQuestion, questions.length]);
+    const handleGetRandomData = () => {
+        // Leer el archivo info.json desde el servidor y obtener una respuesta aleatoria
+        socket.emit('readProject', {
+            project: 'proyectoDeportes',
+            folder: '/home/albertobeguier/proyectoDeportes' // Ruta actualizada
+        });
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -95,34 +94,26 @@ function App() {
         }
     };
 
-    const handleGet = () => {
-        socket.emit('readProject', {
-            project: 'proyectoDeportes',
-            folder: '/home/albertobeguier/proyectoDeportes' // Ruta actualizada
-        });
-    };
-
     const handlePut = () => {
-        if (!lastRecord || !newAnswer) return;
-        const updatedRecord = { ...lastRecord };
-        updatedRecord.data[editIndex].answer = newAnswer;
+        if (!randomData || !newAnswer) return;
+        const updatedData = { ...randomData };
+        updatedData.answer = newAnswer; // Actualizar la respuesta
         socket.emit('updateProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier/proyectoDeportes',
-            data: JSON.stringify(updatedRecord) // Convertir a string
+            data: JSON.stringify(updatedData) // Convertir a string
         });
         setNewAnswer('');
     };
 
     const handleDelete = () => {
-        if (!lastRecord) return;
-        const updatedRecord = { ...lastRecord };
-        updatedRecord.data.splice(deleteIndex, 1);
-        socket.emit('updateProject', {
+        if (!randomData) return;
+        socket.emit('deleteProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier/proyectoDeportes',
-            data: JSON.stringify(updatedRecord) // Convertir a string
+            data: JSON.stringify(randomData) // Convertir a string
         });
+        setRandomData(null); // Limpiar la respuesta aleatoria
     };
 
     const showAlert = (message, type) => {
@@ -141,77 +132,57 @@ function App() {
                     {isConnected ? 'Conectado' : 'Desconectado'}
                 </div>
 
-                {currentQuestion < questions.length ? (
-                    <>
-                        <h1>{questions[currentQuestion]}</h1>
-                        <form onSubmit={handleSubmit}>
-                            <input
-                                type="text"
-                                value={answers[currentQuestion]}
-                                onChange={(e) => {
-                                    const newAnswers = [...answers];
-                                    newAnswers[currentQuestion] = e.target.value;
-                                    setAnswers(newAnswers);
-                                }}
-                                placeholder="Escribe tu respuesta aquí"
-                                required
-                            />
-                            <button type="submit" disabled={!isConnected}>
-                                {currentQuestion < questions.length - 1 ? 'Siguiente' : 'Finalizar'}
-                            </button>
-                        </form>
-                    </>
-                ) : (
-                    <h1>¡Gracias por completar el cuestionario!</h1>
-                )}
+                <h1>Responde a las preguntas:</h1>
+                <form onSubmit={handleSubmit}>
+                    <input
+                        type="text"
+                        value={answers[currentQuestion]}
+                        onChange={(e) => {
+                            const newAnswers = [...answers];
+                            newAnswers[currentQuestion] = e.target.value;
+                            setAnswers(newAnswers);
+                        }}
+                        placeholder="Escribe tu respuesta aquí"
+                        required
+                    />
+                    <button type="submit" disabled={!isConnected}>
+                        {currentQuestion < questions.length - 1 ? 'Siguiente' : 'Finalizar'}
+                    </button>
+                </form>
 
                 <div className="operations">
                     <h2>Operaciones adicionales</h2>
 
                     <div className="operation">
-                        <h3>GET - Obtener último registro</h3>
-                        <button onClick={handleGet} disabled={!isConnected}>Obtener datos</button>
-                        {jsonData && (
+                        <h3>GET - Obtener respuesta aleatoria</h3>
+                        <button onClick={handleGetRandomData} disabled={!isConnected}>
+                            Conseguir una respuesta aleatoria
+                        </button>
+                        {randomData && (
                             <div className="data-display">
-                                <h4>Datos obtenidos:</h4>
-                                <pre>{JSON.stringify(jsonData, null, 2)}</pre>
+                                <h4>Pregunta:</h4>
+                                <p>{randomData.question}</p>
+                                <h4>Respuesta:</h4>
+                                <p>{randomData.answer}</p>
                             </div>
                         )}
                     </div>
 
                     <div className="operation">
-                        <h3>PUT - Actualizar respuesta del último registro</h3>
-                        <select 
-                            value={editIndex} 
-                            onChange={(e) => setEditIndex(Number(e.target.value))}
-                            disabled={!lastRecord}
-                        >
-                            {lastRecord && lastRecord.data.map((_, index) => (
-                                <option key={index} value={index}>Respuesta {index + 1}</option>
-                            ))}
-                        </select>
+                        <h3>PUT - Actualizar respuesta</h3>
                         <input
                             type="text"
                             value={newAnswer}
                             onChange={(e) => setNewAnswer(e.target.value)}
                             placeholder="Nueva respuesta"
-                            disabled={!lastRecord}
+                            disabled={!randomData}
                         />
-                        <button onClick={handlePut} disabled={!newAnswer || !lastRecord}>Actualizar</button>
+                        <button onClick={handlePut} disabled={!newAnswer || !randomData}>Actualizar</button>
                     </div>
 
                     <div className="operation">
-                        <h3>DELETE - Eliminar respuesta del último registro</h3>
-                        <select 
-                            value={deleteIndex} 
-                            onChange={(e) => setDeleteIndex(Number(e.target.value))}
-                            disabled={!lastRecord}
-                        >
-                            {lastRecord && lastRecord.data.map((_, index) => (
-                                <option key={index} value={index}>Respuesta {index + 1}</option>
-                            ))}
-                        </select>
-                        <button onClick={handleDelete} disabled={!lastRecord}>Eliminar</button>
+                        <h3>DELETE - Eliminar respuesta</h3>
+                        <button onClick={handleDelete} disabled={!randomData}>Eliminar</button>
                     </div>
 
                     {alertMessage && (
