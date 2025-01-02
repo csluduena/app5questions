@@ -13,8 +13,8 @@ function App() {
     const [editIndex, setEditIndex] = useState(0);
     const [newAnswer, setNewAnswer] = useState('');
     const [deleteIndex, setDeleteIndex] = useState(0);
-    const [jsonData, setJsonData] = useState(null); // Estado para los datos obtenidos
-    const [randomData, setRandomData] = useState(null); // Estado para la respuesta aleatoria
+    const [jsonData, setJsonData] = useState(null);
+    const [randomData, setRandomData] = useState(null);
 
     const questions = [
         '¿Cuál es tu deporte favorito?',
@@ -51,7 +51,7 @@ function App() {
         newSocket.on('readSuccess', (data) => {
             if (Array.isArray(data) && data.length > 0) {
                 setLastRecord(data[data.length - 1]);
-                setJsonData(data); // Guardar los datos obtenidos
+                setJsonData(data);
                 showAlert('Último registro obtenido correctamente', 'success');
             } else {
                 showAlert('No se encontraron registros', 'error');
@@ -66,10 +66,9 @@ function App() {
     }, []);
 
     const handleGetRandomData = () => {
-        // Leer el archivo info.json desde el servidor y obtener una respuesta aleatoria
         socket.emit('readProject', {
             project: 'proyectoDeportes',
-            folder: '/home/albertobeguier/proyectoDeportes' // Ruta actualizada
+            folder: '/home/albertobeguier/proyectoDeportes'
         });
     };
 
@@ -79,8 +78,8 @@ function App() {
 
         socket.emit('writeProject', {
             project: 'proyectoDeportes',
-            folder: '/home/albertobeguier/proyectoDeportes', // Ruta actualizada
-            data: JSON.stringify({ // Convertir a string
+            folder: '/home/albertobeguier/proyectoDeportes',
+            data: JSON.stringify({
                 question: questions[currentQuestion],
                 answer: answers[currentQuestion],
                 timestamp: new Date().toISOString()
@@ -97,11 +96,11 @@ function App() {
     const handlePut = () => {
         if (!randomData || !newAnswer) return;
         const updatedData = { ...randomData };
-        updatedData.answer = newAnswer; // Actualizar la respuesta
+        updatedData.answer = newAnswer;
         socket.emit('updateProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier/proyectoDeportes',
-            data: JSON.stringify(updatedData) // Convertir a string
+            data: JSON.stringify(updatedData)
         });
         setNewAnswer('');
     };
@@ -111,9 +110,9 @@ function App() {
         socket.emit('deleteProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier/proyectoDeportes',
-            data: JSON.stringify(randomData) // Convertir a string
+            data: JSON.stringify(randomData)
         });
-        setRandomData(null); // Limpiar la respuesta aleatoria
+        setRandomData(null);
     };
 
     const showAlert = (message, type) => {
@@ -177,12 +176,16 @@ function App() {
                             placeholder="Nueva respuesta"
                             disabled={!randomData}
                         />
-                        <button onClick={handlePut} disabled={!newAnswer || !randomData}>Actualizar</button>
+                        <button onClick={handlePut} disabled={!newAnswer || !randomData}>
+                            Actualizar
+                        </button>
                     </div>
 
                     <div className="operation">
                         <h3>DELETE - Eliminar respuesta</h3>
-                        <button onClick={handleDelete} disabled={!randomData}>Eliminar</button>
+                        <button onClick={handleDelete} disabled={!randomData}>
+                            Eliminar
+                        </button>
                     </div>
 
                     {alertMessage && (
