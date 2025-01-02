@@ -9,9 +9,10 @@ function App() {
     const [socket, setSocket] = useState(null);
     const [alertMessage, setAlertMessage] = useState('');
     const [alertType, setAlertType] = useState('');
-    const [getData, setGetData] = useState(null);
-    const [putData, setPutData] = useState({ id: '', newAnswer: '' });
-    const [deleteId, setDeleteId] = useState('');
+    const [lastRecord, setLastRecord] = useState(null);
+    const [editIndex, setEditIndex] = useState(0);
+    const [newAnswer, setNewAnswer] = useState('');
+    const [deleteIndex, setDeleteIndex] = useState(0);
 
     const questions = [
         '¿Cuál es tu deporte favorito?',
@@ -46,8 +47,12 @@ function App() {
         });
 
         newSocket.on('readSuccess', (data) => {
-            setGetData(data);
-            showAlert('Datos obtenidos correctamente', 'success');
+            if (Array.isArray(data) && data.length > 0) {
+                setLastRecord(data[data.length - 1]);
+                showAlert('Último registro obtenido correctamente', 'success');
+            } else {
+                showAlert('No se encontraron registros', 'error');
+            }
         });
 
         setSocket(newSocket);
@@ -96,21 +101,25 @@ function App() {
     };
 
     const handlePut = () => {
-        if (!putData.id || !putData.newAnswer) return;
+        if (!lastRecord || !newAnswer) return;
+        const updatedRecord = { ...lastRecord };
+        updatedRecord.data[editIndex].answer = newAnswer;
         socket.emit('updateProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier',
-            id: putData.id,
-            newData: { answer: putData.newAnswer }
+            data: updatedRecord
         });
+        setNewAnswer('');
     };
 
     const handleDelete = () => {
-        if (!deleteId) return;
-        socket.emit('deleteProject', {
+        if (!lastRecord) return;
+        const updatedRecord = { ...lastRecord };
+        updatedRecord.data.splice(deleteIndex, 1);
+        socket.emit('updateProject', {
             project: 'proyectoDeportes',
             folder: '/home/albertobeguier',
-            id: deleteId
+            data: updatedRecord
         });
     };
 
@@ -158,42 +167,49 @@ function App() {
                     <h2>Operaciones adicionales</h2>
                     
                     <div className="operation">
-                        <h3>GET - Obtener datos</h3>
+                        <h3>GET - Obtener último registro</h3>
                         <button onClick={handleGet} disabled={!isConnected}>Obtener datos</button>
-                        {getData && (
+                        {lastRecord && (
                             <div className="data-display">
-                                <h4>Datos obtenidos:</h4>
-                                <pre>{JSON.stringify(getData, null, 2)}</pre>
+                                <h4>Último registro:</h4>
+                                <pre>{JSON.stringify(lastRecord, null, 2)}</pre>
                             </div>
                         )}
                     </div>
 
                     <div className="operation">
-                        <h3>PUT - Actualizar respuesta</h3>
+                        <h3>PUT - Actualizar respuesta del último registro</h3>
+                        <select 
+                            value={editIndex} 
+                            onChange={(e) => setEditIndex(Number(e.target.value))}
+                            disabled={!lastRecord}
+                        >
+                            {lastRecord && lastRecord.data.map((_, index) => (
+                                <option key={index} value={index}>Respuesta {index + 1}</option>
+                            ))}
+                        </select>
                         <input
                             type="text"
-                            value={putData.id}
-                            onChange={(e) => setPutData({...putData, id: e.target.value})}
-                            placeholder="ID de la respuesta"
-                        />
-                        <input
-                            type="text"
-                            value={putData.newAnswer}
-                            onChange={(e) => setPutData({...putData, newAnswer: e.target.value})}
+                            value={newAnswer}
+                            onChange={(e) => setNewAnswer(e.target.value)}
                             placeholder="Nueva respuesta"
+                            disabled={!lastRecord}
                         />
-                        <button onClick={handlePut} disabled={!isConnected}>Actualizar</button>
+                        <button onClick={handlePut} disabled={!isConnected || !lastRecord}>Actualizar</button>
                     </div>
 
                     <div className="operation">
-                        <h3>DELETE - Eliminar respuesta</h3>
-                        <input
-                            type="text"
-                            value={deleteId}
-                            onChange={(e) => setDeleteId(e.target.value)}
-                            placeholder="ID de la respuesta a eliminar"
-                        />
-                        <button onClick={handleDelete} disabled={!isConnected}>Eliminar</button>
+                        <h3>DELETE - Eliminar respuesta del último registro</h3>
+                        <select 
+                            value={deleteIndex} 
+                            onChange={(e) => setDeleteIndex(Number(e.target.value))}
+                            disabled={!lastRecord}
+                        >
+                            {lastRecord && lastRecord.data.map((_, index) => (
+                                <option key={index} value={index}>Respuesta {index + 1}</option>
+                            ))}
+                        </select>
+                        <button onClick={handleDelete} disabled={!isConnected || !lastRecord}>Eliminar</button>
                     </div>
                 </div>
 
