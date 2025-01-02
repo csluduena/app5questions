@@ -1,0 +1,325 @@
+/* === c:\Users\SebaHero\Desktop\app5questions\extract-code.js === */
+const fs = require('fs');
+const path = require('path');
+
+// Directorio raíz del proyecto
+const projectRoot = path.resolve(__dirname);
+
+// Archivos de salida
+const outputFile = path.join(projectRoot, 'codigo.txt');
+
+// Extensiones válidas para extraer código
+const validExtensions = ['.js', '.css', '.html'];
+
+// Función para recorrer el directorio
+function extractCode(dir, collectedCode = []) {
+  const files = fs.readdirSync(dir);
+
+  files.forEach(file => {
+    const fullPath = path.join(dir, file);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      // Recursión para subdirectorios
+      extractCode(fullPath, collectedCode);
+    } else {
+      const ext = path.extname(file);
+      if (validExtensions.includes(ext)) {
+        // Leer y agregar contenido del archivo al array
+        const code = fs.readFileSync(fullPath, 'utf8');
+        collectedCode.push(`/* === ${fullPath} === */\n${code}\n`);
+      }
+    }
+  });
+
+  return collectedCode;
+}
+
+// Recopilamos el código desde el proyecto
+const code = extractCode(projectRoot).join('\n');
+
+// Escribir código en el archivo de salida
+fs.writeFileSync(outputFile, code, 'utf8');
+console.log(`Código extraído con éxito en: ${outputFile}`);
+
+
+/* === c:\Users\SebaHero\Desktop\app5questions\public\index.html === */
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Cuestionario de deportes creado con React" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <title>Cuestionario de Deportes</title>
+</head>
+
+<body>
+    <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>
+    <div id="root"></div>
+</body>
+
+</html>
+
+/* === c:\Users\SebaHero\Desktop\app5questions\src\App.css === */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f5f5f5;
+}
+
+.App {
+    text-align: center;
+}
+
+.card {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+h1 {
+    margin: 0 0 1.5rem 0;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+input {
+    width: 100%;
+    padding: 0.75rem;
+    margin: 0.5rem 0 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+button {
+    width: 100%;
+    padding: 0.75rem;
+    background: #0070f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background: #0051cc;
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.alert {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 4px;
+}
+
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.alert-error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status {
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.connected {
+    color: #28a745;
+}
+
+.disconnected {
+    color: #dc3545;
+}
+
+/* === c:\Users\SebaHero\Desktop\app5questions\src\App.js === */
+import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
+import './App.css';
+
+function App() {
+    const [currentQuestion, setCurrentQuestion] = useState(0);
+    const [answers, setAnswers] = useState(Array(5).fill(''));
+    const [isConnected, setIsConnected] = useState(false);
+    const [socket, setSocket] = useState(null);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertType, setAlertType] = useState('');
+
+    const questions = [
+        '¿Cuál es tu deporte favorito?',
+        '¿Quién es tu atleta favorito?',
+        '¿Cuál fue el último evento deportivo que viste?',
+        '¿Practicas algún deporte regularmente? ¿Cuál?',
+        '¿Cuál es tu equipo deportivo favorito?'
+    ];
+
+    useEffect(() => {
+        const newSocket = io('https://db.estudiobeguier.com', {
+            reconnectionDelayMax: 10000,
+            withCredentials: true
+        });
+
+        newSocket.on('connect', () => {
+            console.log('Conectado al servidor');
+            setIsConnected(true);
+        });
+
+        newSocket.on('disconnect', () => {
+            console.log('Desconectado del servidor');
+            setIsConnected(false);
+        });
+
+        newSocket.on('writeSuccess', () => {
+            showAlert('¡Respuesta guardada correctamente!', 'success');
+        });
+
+        newSocket.on('error', ({ message }) => {
+            showAlert(message || 'Error al guardar la respuesta', 'error');
+        });
+
+        setSocket(newSocket);
+
+        return () => {
+            newSocket.disconnect();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (currentQuestion === questions.length) {
+            // Reiniciar el cuestionario después de 3 segundos
+            const timer = setTimeout(() => {
+                setCurrentQuestion(0);
+                setAnswers(Array(5).fill(''));
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [currentQuestion, questions.length]);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!answers[currentQuestion].trim()) return;
+
+        socket.emit('writeProject', {
+            project: 'proyectoDeportes',
+            folder: '/home/albertobeguier',
+            data: {
+                question: questions[currentQuestion],
+                answer: answers[currentQuestion],
+                timestamp: new Date().toISOString()
+            }
+        });
+
+        // Avanzar a la siguiente pregunta inmediatamente
+        if (currentQuestion < questions.length - 1) {
+            setCurrentQuestion(currentQuestion + 1);
+        } else {
+            showAlert('¡Todas las respuestas han sido enviadas!', 'success');
+        }
+    };
+
+    const showAlert = (message, type) => {
+        setAlertMessage(message);
+        setAlertType(type);
+        setTimeout(() => {
+            setAlertMessage('');
+            setAlertType('');
+        }, 5000);
+    };
+
+    return (
+        <div className="App">
+            <div className="card">
+                {currentQuestion < questions.length ? (
+                    <>
+                        <h1>{questions[currentQuestion]}</h1>
+                        <div className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
+                            {isConnected ? 'Conectado' : 'Desconectado'}
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <input
+                                type="text"
+                                value={answers[currentQuestion]}
+                                onChange={(e) => {
+                                    const newAnswers = [...answers];
+                                    newAnswers[currentQuestion] = e.target.value;
+                                    setAnswers(newAnswers);
+                                }}
+                                placeholder="Escribe tu respuesta aquí"
+                                required
+                            />
+                            <button type="submit" disabled={!isConnected}>
+                                {currentQuestion < questions.length - 1 ? 'Siguiente' : 'Finalizar'}
+                            </button>
+                        </form>
+                    </>
+                ) : (
+                    <h1>¡Gracias por completar el cuestionario!</h1>
+                )}
+                {alertMessage && (
+                    <div className={`alert ${alertType === 'success' ? 'alert-success' : 'alert-error'}`}>
+                        {alertMessage}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+export default App;
+
+
+
+/* === c:\Users\SebaHero\Desktop\app5questions\src\index.css === */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+        monospace;
+}
+
+/* === c:\Users\SebaHero\Desktop\app5questions\src\index.js === */
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+    <React.StrictMode>
+        <App />
+    </React.StrictMode>
+);
+
+

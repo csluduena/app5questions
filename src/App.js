@@ -9,6 +9,9 @@ function App() {
     const [socket, setSocket] = useState(null);
     const [alertMessage, setAlertMessage] = useState('');
     const [alertType, setAlertType] = useState('');
+    const [getData, setGetData] = useState(null);
+    const [putData, setPutData] = useState({ id: '', newAnswer: '' });
+    const [deleteId, setDeleteId] = useState('');
 
     const questions = [
         '¿Cuál es tu deporte favorito?',
@@ -35,11 +38,16 @@ function App() {
         });
 
         newSocket.on('writeSuccess', () => {
-            showAlert('¡Respuesta guardada correctamente!', 'success');
+            showAlert('¡Operación realizada correctamente!', 'success');
         });
 
         newSocket.on('error', ({ message }) => {
-            showAlert(message || 'Error al guardar la respuesta', 'error');
+            showAlert(message || 'Error en la operación', 'error');
+        });
+
+        newSocket.on('readSuccess', (data) => {
+            setGetData(data);
+            showAlert('Datos obtenidos correctamente', 'success');
         });
 
         setSocket(newSocket);
@@ -51,7 +59,6 @@ function App() {
 
     useEffect(() => {
         if (currentQuestion === questions.length) {
-            // Reiniciar el cuestionario después de 3 segundos
             const timer = setTimeout(() => {
                 setCurrentQuestion(0);
                 setAnswers(Array(5).fill(''));
@@ -74,12 +81,37 @@ function App() {
             }
         });
 
-        // Avanzar a la siguiente pregunta inmediatamente
         if (currentQuestion < questions.length - 1) {
             setCurrentQuestion(currentQuestion + 1);
         } else {
             showAlert('¡Todas las respuestas han sido enviadas!', 'success');
         }
+    };
+
+    const handleGet = () => {
+        socket.emit('readProject', {
+            project: 'proyectoDeportes',
+            folder: '/home/albertobeguier'
+        });
+    };
+
+    const handlePut = () => {
+        if (!putData.id || !putData.newAnswer) return;
+        socket.emit('updateProject', {
+            project: 'proyectoDeportes',
+            folder: '/home/albertobeguier',
+            id: putData.id,
+            newData: { answer: putData.newAnswer }
+        });
+    };
+
+    const handleDelete = () => {
+        if (!deleteId) return;
+        socket.emit('deleteProject', {
+            project: 'proyectoDeportes',
+            folder: '/home/albertobeguier',
+            id: deleteId
+        });
     };
 
     const showAlert = (message, type) => {
@@ -94,12 +126,13 @@ function App() {
     return (
         <div className="App">
             <div className="card">
+                <div className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
+                    {isConnected ? 'Conectado' : 'Desconectado'}
+                </div>
+                
                 {currentQuestion < questions.length ? (
                     <>
                         <h1>{questions[currentQuestion]}</h1>
-                        <div className={`status ${isConnected ? 'connected' : 'disconnected'}`}>
-                            {isConnected ? 'Conectado' : 'Desconectado'}
-                        </div>
                         <form onSubmit={handleSubmit}>
                             <input
                                 type="text"
@@ -120,6 +153,50 @@ function App() {
                 ) : (
                     <h1>¡Gracias por completar el cuestionario!</h1>
                 )}
+
+                <div className="operations">
+                    <h2>Operaciones adicionales</h2>
+                    
+                    <div className="operation">
+                        <h3>GET - Obtener datos</h3>
+                        <button onClick={handleGet} disabled={!isConnected}>Obtener datos</button>
+                        {getData && (
+                            <div className="data-display">
+                                <h4>Datos obtenidos:</h4>
+                                <pre>{JSON.stringify(getData, null, 2)}</pre>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="operation">
+                        <h3>PUT - Actualizar respuesta</h3>
+                        <input
+                            type="text"
+                            value={putData.id}
+                            onChange={(e) => setPutData({...putData, id: e.target.value})}
+                            placeholder="ID de la respuesta"
+                        />
+                        <input
+                            type="text"
+                            value={putData.newAnswer}
+                            onChange={(e) => setPutData({...putData, newAnswer: e.target.value})}
+                            placeholder="Nueva respuesta"
+                        />
+                        <button onClick={handlePut} disabled={!isConnected}>Actualizar</button>
+                    </div>
+
+                    <div className="operation">
+                        <h3>DELETE - Eliminar respuesta</h3>
+                        <input
+                            type="text"
+                            value={deleteId}
+                            onChange={(e) => setDeleteId(e.target.value)}
+                            placeholder="ID de la respuesta a eliminar"
+                        />
+                        <button onClick={handleDelete} disabled={!isConnected}>Eliminar</button>
+                    </div>
+                </div>
+
                 {alertMessage && (
                     <div className={`alert ${alertType === 'success' ? 'alert-success' : 'alert-error'}`}>
                         {alertMessage}
