@@ -4,6 +4,7 @@ import io from 'socket.io-client';
 import './App.css';
 import { v4 as uuidv4 } from 'uuid';
 
+// Inicializa el socket.io
 const socket = io('https://db.estudiobeguier.com', {
     withCredentials: true,
 });
@@ -13,7 +14,7 @@ function App() {
     const [showScore, setShowScore] = useState(false);
     const [score, setScore] = useState(0);
     const [answers, setAnswers] = useState([]);
-    const [projectName, setProjectName] = useState('');
+    const [projectName, setProjectName] = useState('proyectoDeportes'); // Asignación inicial
     const [surveyData, setSurveyData] = useState(null);
     const [showForm, setShowForm] = useState(true);
     const [formData, setFormData] = useState({
@@ -71,6 +72,7 @@ function App() {
         },
     ];
 
+    // Manejo de eventos del socket
     useEffect(() => {
         socket.on('projectData', (data) => {
             console.log('Datos recibidos:', data);
@@ -81,37 +83,18 @@ function App() {
             console.log('Datos guardados exitosamente:', response);
         });
 
+        // Cargar datos del proyecto al iniciar
+        if (projectName) {
+            socket.emit('readProject', projectName);
+        }
+
         return () => {
             socket.off('projectData');
             socket.off('writeSuccess');
         };
-    }, []);
+    }, [projectName]);
 
-    const handleAnswerOptionClick = (answerText) => {
-        setAnswers([...answers, { question: questions[currentQuestion].questionText, answer: answerText }]);
-
-        const nextQuestion = currentQuestion + 1;
-        if (nextQuestion < questions.length) {
-            setCurrentQuestion(nextQuestion);
-        } else {
-            setShowScore(true);
-        }
-    };
-
-    const handleFormSubmit = (e) => {
-        e.preventDefault();
-        setShowForm(false);
-    };
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
-
-    const handleProjectNameChange = (e) => {
-        setProjectName(e.target.value);
-    };
-
+    // Manejador para enviar respuestas
     const handleSubmitSurvey = () => {
         const surveyResult = {
             id: uuidv4(),
@@ -136,8 +119,35 @@ function App() {
         });
     };
 
+    // Manejador para cambiar el nombre del proyecto
+    const handleProjectNameChange = (e) => {
+        setProjectName(e.target.value);
+    };
+
+    // Manejador para cargar proyecto
     const handleReadProject = () => {
         socket.emit('readProject', projectName);
+    };
+
+    const handleFormSubmit = (e) => {
+        e.preventDefault();
+        setShowForm(false);
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleAnswerOptionClick = (answerText) => {
+        setAnswers([...answers, { question: questions[currentQuestion].questionText, answer: answerText }]);
+
+        const nextQuestion = currentQuestion + 1;
+        if (nextQuestion < questions.length) {
+            setCurrentQuestion(nextQuestion);
+        } else {
+            setShowScore(true);
+        }
     };
 
     return (
@@ -223,4 +233,3 @@ function App() {
 }
 
 export default App;
-
