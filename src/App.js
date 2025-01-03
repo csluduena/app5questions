@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import './App.css';
@@ -15,7 +14,7 @@ function App() {
     const [score, setScore] = useState(0);
     const [answers, setAnswers] = useState([]);
     const [projectName, setProjectName] = useState('proyectoDeportes'); // Asignación inicial
-    const [surveyData, setSurveyData] = useState(null);
+    const [surveyData, setSurveyData] = useState([]);
     const [showForm, setShowForm] = useState(true);
     const [formData, setFormData] = useState({
         name: '',
@@ -74,13 +73,25 @@ function App() {
 
     // Manejo de eventos del socket
     useEffect(() => {
-        socket.on('projectData', (data) => {
+        socket.on('projectData', ({ project, data }) => {
             console.log('Datos recibidos:', data);
-            setSurveyData(data);
+            if (project === projectName) {
+                setSurveyData(data);
+            }
         });
 
-        socket.on('writeSuccess', (response) => {
-            console.log('Datos guardados exitosamente:', response);
+        socket.on('writeSuccess', ({ project, data }) => {
+            console.log('Datos guardados exitosamente:', data);
+            if (project === projectName) {
+                setSurveyData(data);
+            }
+        });
+
+        socket.on('projectUpdated', ({ project, data }) => {
+            console.log('Proyecto actualizado:', data);
+            if (project === projectName) {
+                setSurveyData(data);
+            }
         });
 
         // Cargar datos del proyecto al iniciar
@@ -91,6 +102,7 @@ function App() {
         return () => {
             socket.off('projectData');
             socket.off('writeSuccess');
+            socket.off('projectUpdated');
         };
     }, [projectName]);
 
@@ -213,7 +225,7 @@ function App() {
                     </div>
                 </>
             )}
-            {/* <div>
+            <div>
                 <input
                     type="text"
                     value={projectName}
@@ -222,14 +234,15 @@ function App() {
                 />
                 <button onClick={handleReadProject}>Cargar proyecto</button>
             </div>
-            {surveyData && (
+            {surveyData.length > 0 && (
                 <div>
                     <h3>Datos del proyecto:</h3>
                     <pre>{JSON.stringify(surveyData, null, 2)}</pre>
                 </div>
-            )} */}
+            )}
         </div>
     );
 }
 
 export default App;
+
