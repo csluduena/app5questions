@@ -225,21 +225,21 @@ function App() {
                     </div>
                 </>
             )}
-            <div>
-                {/* <input
+            {/* <div>
+                <input
                     type="text"
                     value={projectName}
                     onChange={handleProjectNameChange}
                     placeholder="Nombre del proyecto"
-                /> */}
-                <button onClick={handleReadProject}>Datos Guardados:</button>
+                />
+                <button onClick={handleReadProject}>Cargar proyecto</button>
             </div>
-            {surveyData.length > 0 && (
-                <div>
-                    <h3>Datos del proyecto:</h3>
-                    <pre>{JSON.stringify(surveyData, null, 2)}</pre>
-                </div>
-            )}
+            {surveyData.length > 0 && ( */}
+            <div>
+                <h3>Datos del proyecto:</h3>
+                <pre>{JSON.stringify(surveyData, null, 2)}</pre>
+            </div>
+            {/* )} */}
         </div>
     );
 }
