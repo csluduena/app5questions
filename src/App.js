@@ -226,13 +226,13 @@ function App() {
                 </>
             )}
             <div>
-                <input
+                {/* <input
                     type="text"
                     value={projectName}
                     onChange={handleProjectNameChange}
                     placeholder="Nombre del proyecto"
-                />
-                <button onClick={handleReadProject}>Cargar proyecto</button>
+                /> */}
+                <button onClick={handleReadProject}>Datos Guardados:</button>
             </div>
             {surveyData.length > 0 && (
                 <div>
