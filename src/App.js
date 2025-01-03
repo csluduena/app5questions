@@ -213,7 +213,7 @@ function App() {
                     </div>
                 </>
             )}
-            <div>
+            {/* <div>
                 <input
                     type="text"
                     value={projectName}
@@ -227,7 +227,7 @@ function App() {
                     <h3>Datos del proyecto:</h3>
                     <pre>{JSON.stringify(surveyData, null, 2)}</pre>
                 </div>
-            )}
+            )} */}
         </div>
     );
 }
